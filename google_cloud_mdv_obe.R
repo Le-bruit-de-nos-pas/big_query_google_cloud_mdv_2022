@@ -21,11 +21,6 @@ con <- dbConnect(
 dbListTables(con)
 
 
-# -------------------------------------------------------------------------
-# Exploratory Data Analysis - Obesity Files -------------------------------
-# -------------------------------------------------------------------------
-
-# import libs
 library(data.table)
 library(tidyverse)
 library(lubridate)
@@ -35,9 +30,6 @@ library(scales)
 library(RColorBrewer)
 
 options(scipen = 999)
-
-
-#import tables
 
 Obesity_Disease_Data <- read.table("Obesity_Disease_Data.csv", 
                                    header = TRUE, sep=",", colClasses = "character", stringsAsFactors = FALSE)
@@ -49,13 +41,9 @@ Obesity_FF1Data <- read.table("Obesity_FF1Data.csv",
                                header = TRUE, sep=",", colClasses = "character", stringsAsFactors = FALSE)
 
 
-# Creating a lookup table containing each patient ID  --------------------------
-
 Obesity_Disease_Data_unique_IDS <- unique(Obesity_Disease_Data$patientid)
 length(Obesity_Disease_Data_unique_IDS)
 Unique_Obesity_IDs <- as.data.frame(Obesity_Disease_Data_unique_IDS)
-
-# export it, to use with BigQuery and fetch AGE and GENDER
 
 write.csv(Unique_Obesity_IDs, "Unique_Obesity_IDs.csv", row.names = F)
 
@@ -63,13 +51,7 @@ rm(Unique_Obesity_IDs)
 rm(Obesity_Disease_Data_unique_IDS)
 
 
-# ----------------------------------------------------------------------------
-# ------------------------- OBESITY DISEASE DATA -----------------------------
-# ----------------------------------------------------------------------------
 
-# --- Patient counter per ICD10 bucket ------ normal scale -------------------
-
-# Obesity_Disease_Data_ICD10_Buckets
 
 Obesity_Disease_Data %>%
   select(icd10code) %>%
@@ -92,10 +74,6 @@ Obesity_Disease_Data %>%
   labs(title = "N. of patient-visits, obesity-related disorders")
 
 
-# --- Patient counter per ICD10 bucket ------ log10 scale -------------------
-
-# Obesity_Disease_Data_ICD10_Buckets_Log10
-
 Obesity_Disease_Data %>%
   select(icd10code) %>%
   group_by(icd10code) %>%
@@ -117,11 +95,6 @@ Obesity_Disease_Data %>%
   labs(title = "N. of patient-visits, obesity-related disorders")
 
 
-# -----------------------------------------------------------------------------
-# -------------- Patient per nyugaikbn (i.e. outpatient vs inpatient) ---------
-# -----------------------------------------------------------------------------
-
-# Obesity_Disease_Data_Out_vs_Inpatients
 
 Obesity_Disease_Data %>%
   select(nyugaikbn) %>%
@@ -140,11 +113,6 @@ Obesity_Disease_Data %>%
   labs(title = "Outpatient vs Inpatient care \n (Apr 2008 - Oct 2021)")
 
 
-# -----------------------------------------------------------------------------
-# -------------- Hospital Visits per Month (Obesity-related patients) ---------
-# -----------------------------------------------------------------------------
-
-# calculate number of visits per month
 
 ObsDisDat <- Obesity_Disease_Data %>%
   select(datamonth) %>%
@@ -158,7 +126,6 @@ ObsDisDat <- as.data.frame(ObsDisDat)
 write.csv(ObsDisDat, "Obesity_Hospital_Visits_Month.csv", row.names = F)
 rm(ObsDisDat)
 
-# time series skeleton plot, the whole duration
 
 ObDisDat_plot1 <- Obesity_Disease_Data %>%
   select(datamonth) %>%
@@ -169,7 +136,6 @@ ObDisDat_plot1 <- Obesity_Disease_Data %>%
   ggplot(aes(x=datamonth, y=n, color=datamonth))
 
 
-# finish up the plot details
 
 ObDisDat_plot1 + 
   ylim(0, 27000)+
@@ -181,14 +147,6 @@ ObDisDat_plot1 +
   ggtitle("Number of obesity-related patient visits to the hospital / month \n (Apr 2008 - Oct 2021)")
 
 
-############## ------------------------------------------------------------   ############
-##############            Number_Visits_per_Patient                           ############
-# --------------------------------------------------------------------------------------- 
-
-# calculate number of visits per patient
-
-# render skeleton plot
-
 DiseaseDatDist <- Obesity_Disease_Data %>%
   select(patientid) %>%
   group_by(patientid) %>%
@@ -198,7 +156,6 @@ DiseaseDatDist <- Obesity_Disease_Data %>%
   ggplot(aes(x=typevar, y=n, color=n))
 
 
-# finish up the plot details
 
 DiseaseDatDist + geom_jitter(width = 0.6, size = 2, alpha = 0.4, show.legend = F)+
   theme(axis.text.x = element_blank(), axis.title.x = element_blank())+
@@ -208,12 +165,6 @@ DiseaseDatDist + geom_jitter(width = 0.6, size = 2, alpha = 0.4, show.legend = F
 
 
 
-############## ------------------------------------------------------------   ############
-##############            Number_Visits_per_Patient   per MONTH                       ####
-# --------------------------------------------------------------------------------------- 
-
-# total number of visits per patient 
-
 number_visits_per_patient <- Obesity_Disease_Data %>%
   select(patientid) %>%
   group_by(patientid) %>%
@@ -221,11 +172,9 @@ number_visits_per_patient <- Obesity_Disease_Data %>%
   arrange(patientid)
 
 
-# final data follow-up 
 
 finaldate <- as.Date("2021-10-01")
 
-# number of follow up days
 
 follow_up_days <- Obesity_Disease_Data %>%
   select(patientid, datamonth) %>%
@@ -237,28 +186,20 @@ follow_up_days <- Obesity_Disease_Data %>%
 
 
 
-# add number of visits per patient AND number of follow up days
-
 visits_by_followup <- follow_up_days %>% 
   left_join(number_visits_per_patient, by= "patientid")
 
-# convert follow up to months
-# calculate visits per patient per month
 
 visits_by_followup_normalized <- visits_by_followup %>%
   mutate(followup = (followup / 12)) %>%
   mutate(followup = as.numeric(followup)) %>%
   mutate(visitspermonth = (n / followup))
 
-# create skeleton plot
-
 visits_by_followup_normalized_plot <- visits_by_followup_normalized %>%
   select(patientid, visitspermonth) %>%
   mutate(typevar= typeof(patientid)) %>%
   ggplot(aes(x=typevar, y=visitspermonth, color=visitspermonth))
 
-
-# Visits per patient normalized to N. months of follow-up (cont.)
 
 visits_by_followup_normalized_plot + 
   geom_jitter(width = 0.6, size = 2, alpha = 0.3, show.legend = F)+
@@ -276,9 +217,6 @@ rm(DiseaseDatDist)
 rm(number_visits_per_patient)
 
 
-# ------------------------- OBESITY FF1 DATA -----------------------------
-# ----------------------------------------------------------------------------
-
 Obesity_FF1Data <- read.table("Obesity_FF1Data.csv", 
                               header = TRUE, sep=",", colClasses = "character", stringsAsFactors = FALSE)
 
@@ -290,19 +228,15 @@ Obesity_FF1Data_unique_IDS <- unique(Obesity_FF1Data$patientid)
 length(Obesity_FF1Data_unique_IDS)
 
 
-# need to remove NAs and weights or heights = 0 prior to computing the BMI
-
 Obesity_FF1Data <-
   Obesity_FF1Data %>% 
   filter(!is.na(Obesity_FF1Data$weight) & !is.na(Obesity_FF1Data$height) & Obesity_FF1Data$weight != 0 &  Obesity_FF1Data$height != 0)
 
 
-# Add DEPARTMENT NAME in ENGLISH
 
 Obesity_FF1_Data_w_DEPARTMENT <- Obesity_FF1Data %>% left_join(M_KaCode, by="kacodeuni")
 
 
-# check how many unique patients
 
 Obesity_FF1_Data_unique_IDS <- unique(Obesity_FF1_Data_w_DEPARTMENT$patientid)
 length(Obesity_FF1_Data_unique_IDS)  #
@@ -313,8 +247,6 @@ rm(M_KaCode, Obesity_FF1Data, Obesity_FF1_Data_unique_IDS)
 
 
 
-#  Adding a BMI column
-
 Obesity_FF1_Data_w_DEPARTMENT$weight <- as.numeric(Obesity_FF1_Data_w_DEPARTMENT$weight)
 Obesity_FF1_Data_w_DEPARTMENT$height <- as.numeric(Obesity_FF1_Data_w_DEPARTMENT$height)
 
@@ -322,12 +254,10 @@ Obesity_FF1_Data_w_DEPARTMENT <- Obesity_FF1_Data_w_DEPARTMENT %>%
   select(patientid, weight, height, kacodeuni, kaname_eng) %>%
   mutate(BMI = weight / (height / 100)^2 )
   
-# Checking how many unique DEPARTMENTS we have
 
 Obesity_FF1_Data_unique_DEPS <- unique(Obesity_FF1_Data_w_DEPARTMENT$kacodeuni)
 length(Obesity_FF1_Data_unique_DEPS)
 
-# one of the BMIs is clearly wrong
 
 Obesity_FF1_Data_w_DEPARTMENT <- Obesity_FF1_Data_w_DEPARTMENT %>%  
   filter(BMI > 10)
@@ -344,7 +274,6 @@ Obesity_FF1_Data_w_DEPARTMENT %>%
   ggtitle("BMIs, obesity-related disorder patients \n (Hospital visits Apr 2008 - Oct 2021)")
 
 
-#### number of visits by medical deparment
 
 Obesity_FF1_Data_w_DEPARTMENT %>%  
   select(patientid, kaname_eng) %>%
@@ -365,11 +294,6 @@ rm(Obesity_FF1_Data_w_DEPARTMENT, Obesity_FF1_Data_unique_DEPS, Obesity_FF1Data_
 
 
 
-
-
-
-# ------------------------- OBESITY - ACT - DATA -----------------------------
-# ----------------------------------------------------------------------------
 
 Act_Data_Obesity <- read.table("Act_Data_Obesity.csv", 
                                header = TRUE, sep=",", colClasses = "character", stringsAsFactors = FALSE)
@@ -402,9 +326,6 @@ rm(M_DataKbn)
 
 
 
-
-# -------------- Getting Sex and Gender for Obesity Patient Data
-
 Obesity_Disease_Data <- read.table("Obesity_Disease_Data.csv", 
                                    header = TRUE, sep=",", colClasses = "character", stringsAsFactors = FALSE)
 
@@ -415,33 +336,23 @@ all_obesity_age_sex <- read.table("all_obesity_age_sex.csv",
 
 
 
-
-# LEFT JOIN BY MORE THAN ONE KEY !!!
-# left join with the dataframe containing age and sex
-
 Obesity_Disease_Data_demographics <- 
   Obesity_Disease_Data %>% 
   inner_join(all_obesity_age_sex, by = c("patientid" = "patientid", "datamonth" = "datamonth"))
 
-# remove current env vars
 
 rm(all_obesity_age_sex, Obesity_Disease_Data)
 
 
-# check age dsitribution
 
 Obesity_Disease_Data_demographics$age <- as.numeric(Obesity_Disease_Data_demographics$age)
 range(Obesity_Disease_Data_demographics$age)
 sort(Obesity_Disease_Data_demographics$age)
 
 
-# Demographics Fil----------
-
 data.frame(Obesity_Disease_Data_demographics %>%
   group_by(age) %>%
   summarise(n = n()))
-
-# check sex distribution
 
 Obesity_Disease_Data_demographics$sex = as.factor(Obesity_Disease_Data_demographics$sex)
 
@@ -449,10 +360,6 @@ Obesity_Disease_Data_demographics %>%
   group_by(sex) %>%
   summarise(n = n())
 
-
-# -----------------------------------------------------------------------------------------
-#          AGE   --------------------------------------------------------------------------
-# create age buckets for obesity disease data
 
 labs <- c(paste(seq(0, 95, by = 5), 
                 seq(0 + 5 - 1, 100 - 1, by = 5), sep = "-"), 
@@ -465,15 +372,11 @@ Obesity_Disease_Data_demographics$AgeGroup <- cut(Obesity_Disease_Data_demograph
 head(Obesity_Disease_Data_demographics[c("age", "AgeGroup")], 100)
 
 
-# --- Patient counter per ICD10 bucket ------ normal scale -------------------
-
 print(Obesity_Disease_Data_demographics %>%
   select(icd10code, AgeGroup) %>%
   group_by(icd10code, AgeGroup) %>%
   summarise(n = n()), n=140)
 
-
-# Obesity_Disease_Data_ICD10_Buckets  BY AGE GROUP --------------------------------------
 
 myCols <- colorRampPalette(brewer.pal(9, "Accent"))
 mySetCols <- myCols(length(unique(Obesity_Disease_Data_demographics$AgeGroup)))
@@ -501,9 +404,6 @@ Obesity_Disease_Data_demographics %>%
   scale_fill_manual(values= mySetCols)
 
 
-
-############ same thing, prettier colors, harder to distinguish between them though
-
 Obesity_Disease_Data_demographics %>%
   #filter(age >= 18) %>%
   select(icd10code, AgeGroup) %>%
@@ -525,9 +425,6 @@ Obesity_Disease_Data_demographics %>%
   labs(title = "N. of patient-visits, obesity-related disorders")+
   scale_fill_viridis_d()
 
-
-
-#  ------------------ By GENDER ---------------------------------------------------------
 
 levels(Obesity_Disease_Data_demographics$sex) <- c("Male", "Female")
 
@@ -552,12 +449,6 @@ Obesity_Disease_Data_demographics %>%
 
 
 
-# ----------------------------------------------------------------
-# -------- Time Series per AGE GROUP -----------------------------
-# ----------------------------------------------------------------
-
-# calculate number of visits per month
-
 ObsDisDat <- Obesity_Disease_Data_demographics %>%
   filter(age >= 18) %>%
   select(datamonth, AgeGroup) %>%
@@ -569,8 +460,6 @@ ObsDisDat <- Obesity_Disease_Data_demographics %>%
 ObsDisDat <- as.data.frame(ObsDisDat)
 
 
-# time series skeleton plot, the whole duration
-
 ObDisDat_plot1 <- Obesity_Disease_Data_demographics %>%
   #filter(age >= 18) %>%
   select(datamonth, AgeGroup) %>%
@@ -581,7 +470,6 @@ ObDisDat_plot1 <- Obesity_Disease_Data_demographics %>%
   ggplot(aes(x=datamonth, y=n, color=AgeGroup))
 
 
-# finish up the plot details
 
 ObDisDat_plot1  + geom_line( size = 1.5, alpha = 0.9)+
   scale_x_date(breaks=date_breaks("6 months"), 
@@ -597,13 +485,7 @@ rm(ObDisDat_plot1, ObsDisDat, mySetCols, myCols)
 
 
 
-
-#### ------- Number of UNIQUE Patients per age group ---------------------------------------------------
-
-
 write.csv(Obesity_Disease_Data_demographics, "Obesity_Disease_Data_demographics.csv", row.names = F)
-
-# all patients - age ENTRIES/REPORTS/CLAIMS
 
 data.frame(
   Obesity_Disease_Data_demographics %>%
@@ -612,9 +494,6 @@ data.frame(
     arrange(patientid, age))
 
 
-
-# perfect double check
-
 UniquePatient_MaxAge <- Obesity_Disease_Data_demographics %>%
        select(patientid, age) %>%
        group_by(patientid) %>%
@@ -622,14 +501,10 @@ UniquePatient_MaxAge <- Obesity_Disease_Data_demographics %>%
        summarize(across(everything(), max))
 
 
-# Add age group again
-
 UniquePatient_MaxAge$AgeGroup <- 
   cut(UniquePatient_MaxAge$age,
       breaks = c(seq(0, 100, by = 5), Inf), 
       labels = labs, right = FALSE)
-
-# count how many in each bucket, start the plot
 
 UniquePatient_MaxAge %>%
   filter(age >= 18) %>%
@@ -645,42 +520,29 @@ UniquePatient_MaxAge %>%
   ggtitle("Number of unique patients per Age Group")
 
 
-# table with act month, patientid and drug code
-# onlyone drug, but wanna check with vs without drug after merging it
-
 Act_Data_Obesity <- read.table("Act_Data_Obesity.csv", 
                                    header = TRUE, sep=",", colClasses = "character", stringsAsFactors = FALSE)
 
-# table with patient demographics for all obesity patients
 
 Obesity_Disease_Data_demographics <- Obesity_Disease_Data_demographics %>%
   select(-c(fromdate, nyugaikbn, icd10code, diseasecode, diseasename_eng))
   
 length(unique(Obesity_Disease_Data_demographics$patientid))  # all good, 
 
-# left join to add the drug tag (yes or no)
 
 Obesity_Demographics_with_DRUG_label <- Obesity_Disease_Data_demographics %>%
   left_join(Act_Data_Obesity, by = c("patientid" = "patientid", "datamonth" = "datamonth"))
 
-# remove duplicates
 
 Obesity_Demographics_with_DRUG_label <- Obesity_Demographics_with_DRUG_label %>% distinct()
 
-# arrange by date
-
 Obesity_DRUG_label_by_month <- Obesity_Demographics_with_DRUG_label %>%
   arrange(datamonth)
-
-# change drug tag to ON vs OFF it at the time the patient was seen
 
 Obesity_DRUG_label_by_month <- Obesity_DRUG_label_by_month %>%
   mutate(datakbn = ifelse(is.na(datakbn), "OFF Drug", "ON Drug"))
 
 Obesity_DRUG_label_by_month$datamonth <- as.Date(Obesity_DRUG_label_by_month$datamonth)
-
-# Split Over time 3 cohorts
-#prior to Oct 2012
 
 Cohort_Until_Oct_2012 <- Obesity_DRUG_label_by_month %>%
   filter(datamonth < "2012-10-01")
@@ -694,13 +556,6 @@ Cohort_April_2017_Oct_2021 <- Obesity_DRUG_label_by_month %>%
   filter(datamonth >= "2017-04-01")
 
 
-# -------------------------------------------------------------------------------------
-# now filter for each patient only once in each time period ---------------------------
-# -------------------------------------------------------------------------------------
-
-
-# remove factor variables so that we can select the maximum row per patient
-
 Cohort_Until_Oct_2012 <- Cohort_Until_Oct_2012 %>%
   select(-c(AgeGroup, sex))
 
@@ -711,7 +566,6 @@ Cohort_April_2017_Oct_2021 <- Cohort_April_2017_Oct_2021 %>%
   select(-c(AgeGroup, sex))
 
 
-# select maximum row after sorting them
 
 UniquePatient_MaxAge_Cohort_Until_Oct_2012 <- Cohort_Until_Oct_2012 %>%
   group_by(patientid) %>%
@@ -729,7 +583,6 @@ UniquePatient_MaxAge_Cohort_April_2017_Oct_2021 <- Cohort_April_2017_Oct_2021 %>
   summarize(across(everything(), max))
 
 
-# Add age group again
 
 UniquePatient_MaxAge_Cohort_Until_Oct_2012$AgeGroup <- 
   cut(UniquePatient_MaxAge_Cohort_Until_Oct_2012$age,
@@ -749,7 +602,6 @@ UniquePatient_MaxAge_Cohort_April_2017_Oct_2021$AgeGroup <-
 
 
 
-# count how many in each bucket, start the plot
 
 UniquePatient_MaxAge_Cohort_Until_Oct_2012$datakbn <- as.factor(UniquePatient_MaxAge_Cohort_Until_Oct_2012$datakbn)
 
@@ -839,9 +691,6 @@ UniquePatient_MaxAge_Cohort_April_2017_Oct_2021 %>%
 
 
 
-
-# Caluclate Percentage / Drug penetrance --------------------------------
-
 How_many_OFF_2017_to_2021 <- data.frame(UniquePatient_MaxAge_Cohort_April_2017_Oct_2021 %>%
                                           filter(datakbn == "OFF Drug") %>%
                                           group_by(AgeGroup) %>%
@@ -868,53 +717,39 @@ How_many_OFF_vs_ON %>%
 
 
 
-# ---------------------- THE SAME THING , LAST YEAR ONLY ---------------------- #
-# ----------------------------------------------------------------------------- #
-
-
 Obesity_Disease_Data_demographics <- read.table("Obesity_Disease_Data_demographics.csv", 
                                                 header = TRUE, sep=",", colClasses = "character", stringsAsFactors = FALSE)
 
-# table with act month, patientid and drug code
-# onlyone drug, but wanna check with vs without drug after merging it
 
 Act_Data_Obesity <- read.table("Act_Data_Obesity.csv", 
                                header = TRUE, sep=",", colClasses = "character", stringsAsFactors = FALSE)
 
-# table with patient demographics for all obesity patients
 Obesity_Disease_Data_demographics <- Obesity_Disease_Data_demographics %>%
   select(-c(fromdate, nyugaikbn, icd10code, diseasecode, diseasename_eng))
 
 length(unique(Obesity_Disease_Data_demographics$patientid))  # all good, 
 
-# left join to add the drug tag (yes or no)
 Obesity_Demographics_with_DRUG_label <- Obesity_Disease_Data_demographics %>%
   left_join(Act_Data_Obesity, by = c("patientid" = "patientid", "datamonth" = "datamonth"))
 
-# remove duplicates
 Obesity_Demographics_with_DRUG_label <- Obesity_Demographics_with_DRUG_label %>% distinct()
 
 
-# arrange by date
 Obesity_DRUG_label_by_month <- Obesity_Demographics_with_DRUG_label %>%
   arrange(datamonth)
 
-# change drug tag to ON vs OFF it at the time the patient was seen
 Obesity_DRUG_label_by_month <- Obesity_DRUG_label_by_month %>%
   mutate(datakbn = ifelse(is.na(datakbn), "OFF Drug", "ON Drug"))
 
 
 Obesity_DRUG_label_by_month$datamonth <- as.Date(Obesity_DRUG_label_by_month$datamonth)
 
-# filter dates
 Cohort_Year_Minus_1 <-Obesity_DRUG_label_by_month %>%
   filter(datamonth >= "2020-10-01")
 
-# remove factor variables so that we can select the maximum row per patient
 Cohort_Year_Minus_1 <- Cohort_Year_Minus_1 %>%
   select(-c(AgeGroup, sex))
 
-# select maximum row after sorting them
 UniquePatient_MaxAge_Cohort_Year_Minus_1 <- Cohort_Year_Minus_1 %>%
   group_by(patientid) %>%
   arrange(patientid, age) %>%
@@ -922,7 +757,6 @@ UniquePatient_MaxAge_Cohort_Year_Minus_1 <- Cohort_Year_Minus_1 %>%
 
 UniquePatient_MaxAge_Cohort_Year_Minus_1$age <- as.numeric(UniquePatient_MaxAge_Cohort_Year_Minus_1$age)
 
-# Add age group again
 UniquePatient_MaxAge_Cohort_Year_Minus_1$AgeGroup <- 
   cut(UniquePatient_MaxAge_Cohort_Year_Minus_1$age,
       breaks = c(seq(0, 100, by = 5), Inf), 
@@ -954,10 +788,6 @@ UniquePatient_MaxAge_Cohort_Year_Minus_1 %>%
   geom_text(aes(label = n, vjust = -1))+
   ggtitle("N. of unique patients ON DRUG / Age Group (Year -1)")
 
-
-# Caluclate Percentage / Drug penetrance
-# ---------------------------------------------------------------------------------------------
-
 How_many_OFF_Year_Minus_1 <- data.frame(UniquePatient_MaxAge_Cohort_Year_Minus_1 %>%
                                           filter(datakbn == "OFF Drug") %>%
                                           group_by(AgeGroup) %>%
@@ -978,7 +808,6 @@ How_many_OFF_vs_ON <- How_many_OFF_vs_ON %>% mutate(sumrow= n.x + n.y)
 How_many_OFF_vs_ON <- How_many_OFF_vs_ON %>% mutate(proportion = (n.y / sumrow) * 100)
 
 
-# plot it
 How_many_OFF_vs_ON %>%
   ggplot(aes(x = AgeGroup, y = proportion, fill = AgeGroup, label=sprintf("%0.2f", round(proportion, digits = 2))))+
   geom_bar(position = "stack", stat="identity", alpha = 0.8, fill = "firebrick")+
@@ -990,18 +819,12 @@ How_many_OFF_vs_ON %>%
 
 
 
-# All Drugs for Obesity Patients ----------------------------------------------------------
-
-# table with act month, patientid and drug code for all drugs in obesity patients
-
 Act_Data_Obesity_All_Drugs <- read.table("Act_Data_Obesity_All_Drugs.csv", 
                                header = TRUE, sep=",", colClasses = "character", stringsAsFactors = FALSE)
 
-# 55752 unique patients with obesity tags
 Act_Data_Obesity_All_Drugs_unique_IDS <- unique(Act_Data_Obesity_All_Drugs$patientid)
 length(Act_Data_Obesity_All_Drugs_unique_IDS)
 
-# 4412 unique act/drug codes among patients with an obesity tag
 Act_Data_Obesity_All_Drugs_unique_drugs <- unique(Act_Data_Obesity_All_Drugs$receiptcode)
 length(Act_Data_Obesity_All_Drugs_unique_drugs)
 
@@ -1019,7 +842,6 @@ M_Drug <- M_Drug %>% select(-c("drugusagecode", "genericcode"))
 xx <- xx %>%
   inner_join(M_Drug, by = "receiptcode") 
 
-# translate into 1871 unique drugs prescribed
 
 Drugs_Obesity_Patients_N <- data.frame(xx %>% group_by(druggeneralname_eng) %>% summarise(n = n())) %>%
   arrange(n)

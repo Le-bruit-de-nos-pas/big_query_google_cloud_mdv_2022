@@ -1,14 +1,10 @@
 
----------------------------------  DISEASE DATA subgrouping ----------------------------------
---- T2D ---
 SELECT * FROM `mdv-t2d.mdv_jp_2021.DiseaseData`
 WHERE icd10code LIKE "E11%" OR
 icd10code LIKE "E12%" OR
 icd10code LIKE "E13%" OR 
 icd10code LIKE "E14%";
 
-
----- Obesity ----
 SELECT * FROM `mdv-t2d.mdv_jp_2021.DiseaseData`
 WHERE icd10code LIKE "E66%" OR
 icd10code LIKE "R632" OR
@@ -16,10 +12,6 @@ icd10code LIKE "R635" OR
 icd10code LIKE "R638";
 
 
-
-
----------------------------------  FF1DATA subgrouping ----------------------------------
---- T2D ---
 SELECT * FROM `mdv-t2d.mdv_jp_2021.FF1Data`
 WHERE icd10code1 LIKE "E11%" OR
 icd10code1 LIKE "E12%" OR
@@ -35,7 +27,6 @@ icd10code3 LIKE "E13%" OR
 icd10code3 LIKE "E14%";
 
 
----- Obesity ----
 SELECT * FROM `mdv-t2d.mdv_jp_2021.FF1Data`
 WHERE icd10code1 LIKE "E66%" OR
 icd10code1 LIKE "R632" OR
@@ -51,9 +42,6 @@ icd10code3 LIKE "R635" OR
 icd10code3 LIKE "R638";
 
 
-
-
--- NOTE !!!!! The FF1 CAN MATCH 2 DIFFERENT ICD10 VERSIONS, ACCOUNT FOR THAT FOR T2D
 SELECT * FROM `mdv-t2d.mdv_jp_2021.FF1Data`
 WHERE icd10code1 LIKE "E11%" OR
 icd10code1 LIKE "E12%" OR
@@ -80,8 +68,6 @@ icd10code3_2003 LIKE "E12%" OR
 icd10code3_2003 LIKE "E13%" OR 
 icd10code3_2003 LIKE "E14%";
 
-
--- NOTE !!!!! The FF1 CAN MATCH 2 DIFFERENT ICD10 VERSIONS, ACCOUNT FOR THAT FOR OBESITY
 SELECT * FROM `mdv-t2d.mdv_jp_2021.FF1Data`
 WHERE icd10code1 LIKE "E66%" OR
 icd10code1 LIKE "R632" OR
@@ -110,162 +96,98 @@ icd10code3_2003 LIKE "R638";
 
 
 
-
-
-
-
------------------ FF1 DATA ----- REDUCE NUMBER OF COLUMNS ------------------------------
-
---- FILTERING THE FF1 COLUMNS TO REDUCE THE SIZE OF THE T2D FILE
 SELECT a.patientid, a.admittingdate, a.dischargingdate, a.weight, a.height, 
 a.icd10code1, a.icd10code1_2003, a.icd10code2, a.icd10code2_2003, a.icd10code3, 
 a.icd10code3_2003, a.kacodeuni  
 FROM `mdv-t2d.mdv_jp_2021.T2D_sub_FF1Data_NEW` AS a;
 
 
---- FILTERING THE FF1 COLUMNS TO REDUCE THE SIZE OF THE OBESITY FILE
 SELECT a.patientid, a.admittingdate, a.dischargingdate, a.weight, a.height, 
 a.icd10code1, a.icd10code1_2003, a.icd10code2, a.icd10code2_2003, a.icd10code3, 
 a.icd10code3_2003, a.kacodeuni  
 FROM `mdv-t2d.mdv_jp_2021.Obesity_sub_FF1Data_NEW` AS a;
 
---------------------------------------------------------------------------------------------
 
 
-
-
-
-
-
-
-
-
-
-
-------------------    DISEASE DATA ----- REDUCE NUMBER OF COLUMNS ---------------------
-
---- FILTERING THE DISEASE DATA COLUMNS TO REDUCE THE SIZE OF THE OBESITY FILE
 SELECT a.patientid, a.datamonth, a.fromdate, a.nyugaikbn, a.dpcdiseasesegment, 
 a.icd10code, a.diseasecode, a.diseasename_eng   
 FROM `mdv-t2d.mdv_jp_2021.Obesity_sub_DiseaseData` AS a;
 
 
---- further reduced, one of the columns was empty for most patients
 SELECT a.patientid, a.datamonth, a.fromdate, a.nyugaikbn, a.icd10code, 
 a.diseasecode, a.diseasename_eng   
 FROM `mdv-t2d.mdv_jp_2021.Obesity_sub_DiseaseData` AS a;
 
-
---- FILTERING THE DISEASE DATA COLUMNS TO REDUCE THE SIZE OF THE T2D FILE
 SELECT a.patientid, a.datamonth, a.dpcdiseasesegment, a.fromdate, 
 a.nyugaikbn, a.icd10code, a.diseasecode, a.diseasename_eng   
 FROM `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData` AS a;
 
---- further reduced, one of the columns was empty for most patients
 SELECT a.patientid, a.datamonth, a.fromdate, a.nyugaikbn,
  a.icd10code, a.diseasecode, a.diseasename_eng  
  FROM `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData` AS a;
 
-------------------------------------------------------------------------------------------
 
 
 
 
 
-
-
-
-
-
-
-
-------------- ---- JOINING MASTER OF DRUG to ActData ------------ BY receiptcode
-
------------------------ FILTERING THE MASTER OF MDRUG FOR A10S ONLY ------------------
 SELECT * FROM  `mdv-t2d.mdv_jp_2021.MDrug`AS a
 WHERE a.atccode_ephmra LIKE "A10%";
 
------------------------ FILTERING THE MASTER OF MDRUG FOR A08 ONLY -------------------
 SELECT * FROM  `mdv-t2d.mdv_jp_2021.MDrug`AS a
 WHERE a.atccode_ephmra LIKE "A08%";
 
-
---- REMOVE DUPLICATE COLUMN OF THE MASTER DRUG A10s BEFORE MERGING
 SELECT m.atccode_ephmra, m.drugusagecode, m.genericcode, m.receiptcode, m.druggeneralname_eng 
 FROM  `mdv-t2d.mdv_jp_2021.MDrug_A10s_only` AS m;
 
-
---- REMOVE DUPLICATE COLUMN OF THE MASTER DRUG A08 BEFORE MERGING
 SELECT m.atccode_ephmra, m.drugusagecode, m.genericcode, m.receiptcode, m.druggeneralname_eng 
 FROM  `mdv-t2d.mdv_jp_2021.MDrug_A08_only` AS m;
 
-
---- RIGHT OUTER JOIN WITH A10s
 SELECT * FROM `mdv-t2d.mdv_jp_2021.ActData_FILTERED`
 RIGHT OUTER JOIN `mdv-t2d.mdv_jp_2021.MDrug_A10s_only_SHORT` USING (receiptcode);
 
---- RIGHT OUTER JOIN WITH A08
 SELECT * FROM `mdv-t2d.mdv_jp_2021.ActData_FILTERED`
 RIGHT OUTER JOIN `mdv-t2d.mdv_jp_2021.MDrug_A08_only_SHORT` USING (receiptcode);
 
 
 
-
-
-
--- 4 February 2022 [GETTING !ALL! ACTS FOR  OBESITY PATIENTS]
--- FETCHING AGE AND SEX FOR OBESITY PATIENTS FROM DISEASE DATA
 SELECT a.patientid, a.sex, a.age, a.datamonth
 FROM `mdv-t2d.mdv_jp_2021.Obesity_sub_DiseaseData` AS a;
 
-
--- SELECTING COLUMNS FROM THE ACT DATA (i.e. all medical and medication-related acts)
 SELECT a.patientid, a.receiptcode,a.datamonth
 FROM `mdv-t2d.mdv_jp_2021.ActData` AS a;
 
-
--- FROM THE ABOVE TABLE, REDUCING IT EVEN MORE AS THERE CAN BE NO DUPLICATED COLUMNS ON THE DESTINATION TABLE IN BIG QUERY
 SELECT a.patientid, a.receiptcode
 FROM `mdv-t2d.mdv_jp_2021.ActData_ID_Receipt_Datamonth` AS a;
 
-
--- ADDING ALL THESE ACTS TO THE ORIGINAL OBESITY PATIENTS TABLE
 SELECT *
 FROM `mdv-t2d.mdv_jp_2021.Obesity_sub_DiseaseData_FILTERED` a
 LEFT JOIN `mdv-t2d.mdv_jp_2021.ActData_ID_Receiptcode` b USING (patientid);
 
 
--- REDUCING THE SIZE OF THE RESULTING TABLE
 SELECT DISTINCT patientid, datamonth, receiptcode
 FROM    `mdv-t2d.mdv_jp_2021.Obesity_sub_DiseaseData_FILTERED_with_ACT_DATA`;
 
 
--- CHECKING HOW MANY UNIQUE PATIENTS IN THE RESULTING TABLE   (?) 130192
 SELECT DISTINCT patientid,
 FROM    `mdv-t2d.mdv_jp_2021.Obesity_Disease_Data_Unique_Act_Data`;
 
 
--- SORTING IT BY DATE
 SELECT *
   FROM `mdv-t2d.mdv_jp_2021.Obesity_Disease_Data_Unique_Act_Data`
   ORDER BY datamonth DESC ;
 
 
--- SELECTING patientid, datamonth, datakbn (where they on drug or not) for all patients where receipt code = 611190062 Mazindol
 SELECT a.patientid, a.datamonth, a.datakbn
 FROM `mdv-t2d.mdv_jp_2021.ActData` a
 WHERE a.receiptcode = 611190062;
 
 
-
--- COUNTING THE NUMBER OF UNIQUE OBESITY patients # 130192  , same in R after exporting it, all good
 Select count(distinct patientid) from `mdv-t2d.mdv_jp_2021.Obesity_sub_DiseaseData_FILTERED`;
 
 
 
 
-
--- 66216 unique patients
 select count(distinct patientid) from 
 (select * from 
     (Select distinct t1.patientid, t2.receiptcode, t2.datamonth
@@ -276,7 +198,6 @@ where extract (year from datamonth) > 2020);
 
 
 
--- all receipts for each individual patient for all month from Oct 2020 to Oct 2021 (last year, all drugs)
 select * from 
     (Select distinct(t1.patientid), t2.receiptcode, t2.datamonth
     from `mdv-t2d.mdv_jp_2021.Obesity_sub_DiseaseData_FILTERED` t1
@@ -286,8 +207,6 @@ where extract (year from datamonth) >= 2020 and  extract (month from datamonth) 
 
 
 
-
--- all drugs diabetes patients, last year
 select * from 
     (Select distinct(t1.patientid), t2.receiptcode, t2.datamonth
     from `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData_FILTERED` t1
@@ -298,48 +217,31 @@ order by patientid;
 
 
 
--- 7 FEB 2022
--- All ICD10 codes patient-visits T2 DM for the whole period
 SELECT t2disease.icd10code
 FROM `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData_FILTERED` as t2disease;
 
 
-
--- All nyugaikbn (in vs outpatient) codes patient-visits T2 DM for the whole period
 SELECT t2disease.nyugaikbn
 FROM `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData_FILTERED` as t2disease;
 
 
-
--- visits per month , T2 DM all
 SELECT t2disease.datamonth
 FROM `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData_FILTERED` as t2disease;
 
-
--- with patient id
 SELECT t2disease.datamonth, t2disease.patientid
 FROM `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData_FILTERED` as t2disease;
 
-
--- how many unique patients with t2dm
 select count(distinct t.patientid)
 from `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData` as t;
 
-
-
-
--- list of ages
 select distinct t.age
 from `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData` as t;
 
--- count how many per age
 select count(distinct t.age)
 from `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData` as t;
 
 select count(t.age)
 from `mdv-t2d.mdv_jp_2021.T2D_sub_DiseaseData` as t;
-
-
 
 
 select  age, datamonth
@@ -450,13 +352,6 @@ select patientid, age
 from `mdv-t2d.mdv_jp_2021.T2DM_if_maxmonth_age`;
 
 
-
--- 8 FEB 2022
-
-
-
-
---Query for METFORMIN  from Act Data by receipt code, Year minus 1
 select patientid, datamonth, receiptcode
 from `mdv-t2d.mdv_jp_2021.ActData_ID_Receipt_Datamonth`
 where datamonth > '2020-10-01' and 
@@ -506,10 +401,6 @@ receiptcode = 622450401);
 
 
 
-
-
-
---Query for SITAGLIPTINE  from Act Data by receipt code, Year minus 1
 select patientid, datamonth, receiptcode
 from `mdv-t2d.mdv_jp_2021.ActData_ID_Receipt_Datamonth`
 where datamonth > '2020-10-01' and 
@@ -517,7 +408,6 @@ where datamonth > '2020-10-01' and
 OR receiptcode = 621970801 OR receiptcode =622277501 OR receiptcode = 622288401 OR receiptcode = 622625702);
 
 
---Query for PIOGLITAZONE  from Act Data by receipt code, Year minus 1
 select patientid, datamonth, receiptcode
 from `mdv-t2d.mdv_jp_2021.ActData_ID_Receipt_Datamonth`
 where datamonth > '2020-10-01' and 
@@ -627,8 +517,6 @@ receiptcode = 622086101);
 
 
 
-
---Query for GLIMEPIRIDE  from Act Data by receipt code, Year minus 1
 select patientid, datamonth, receiptcode
 from `mdv-t2d.mdv_jp_2021.ActData_ID_Receipt_Datamonth`
 where datamonth > '2020-10-01' and 
@@ -765,8 +653,6 @@ receiptcode =622048401 OR
 receiptcode =622048501);
 
 
-
---Query for IPRAGLIFLOZINE  from Act Data by receipt code, Year minus 1
 select patientid, datamonth, receiptcode
 from `mdv-t2d.mdv_jp_2021.ActData_ID_Receipt_Datamonth`
 where datamonth > '2020-10-01' and 
@@ -775,9 +661,6 @@ receiptcode = 622306701 OR
 receiptcode = 622625702);
 
 
-
-
---Query for DULAGLUTIDE  from Act Data by receipt code, Year minus 1
 select patientid, datamonth, receiptcode
 from `mdv-t2d.mdv_jp_2021.ActData_ID_Receipt_Datamonth`
 where datamonth > '2020-10-01' and 
